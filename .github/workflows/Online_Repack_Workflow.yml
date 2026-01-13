@@ -75,12 +75,9 @@ jobs:
           cd /workdir/extracted
 
           for archive in $(find . -type f -name "*.tar.gz"); do
-            # dirname=$(dirname "$archive")
-            dirname= "ribel13/amlogic-s9xxx-armbian"
-            # filename=$(basename "$archive" .tar.gz)
-            filename= "6.17.4-freedom.tar.gz"
-            # folder="$dirname/$filename"
-            folder= "kernel_dev/6.17.14.tar.gz"
+            dirname=$(dirname "$archive")
+            filename=$(basename "$archive" .tar.gz)
+            folder="$dirname/$filename"
             mkdir -p "$folder"
             echo "📦 Mengekstrak: $archive -> $folder"
             sudo tar -xzf "$archive" -C "$folder"
