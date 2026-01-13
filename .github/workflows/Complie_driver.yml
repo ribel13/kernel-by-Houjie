@@ -81,4 +81,4 @@ jobs:
         tag_name: ${{ inputs.release_tag }}
         files: output/driver-output.tar.gz
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITHUB_TOKEN: ${{ secrets.RELEASES_TOKEN }}
