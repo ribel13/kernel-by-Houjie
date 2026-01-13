@@ -1,5 +1,5 @@
 
-name: Upload Kernel to Release5
+name: Repack Kernel to Release5
 
 on:
   workflow_dispatch:
