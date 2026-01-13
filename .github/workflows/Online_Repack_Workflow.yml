@@ -5,13 +5,15 @@ on:
   workflow_dispatch:
     inputs:
       kernel_url:
-        description: 'URL kernel (GitHub / Mediafire / Mega)'
+        #description: 'URL kernel (GitHub / Mediafire / Mega)'
+        descriprion: 'https://github.com'
         required: true
         type: string
       kernel_mu:
-        description: "Select the kernel source"
+        #description: "Select the kernel source"
+        description: "github.com/tes-rep/kernel/releases/download/kernel_wifi_on/6.17.4.tar.gz"
         required: false
-        default: "s905x4"
+        default: "dev"
         type: choice
         options:
           - s905x4
@@ -73,9 +75,12 @@ jobs:
           cd /workdir/extracted
 
           for archive in $(find . -type f -name "*.tar.gz"); do
-            dirname=$(dirname "$archive")
-            filename=$(basename "$archive" .tar.gz)
-            folder="$dirname/$filename"
+            # dirname=$(dirname "$archive")
+            dirname= "ribel13/amlogic-s9xxx-armbian"
+            # filename=$(basename "$archive" .tar.gz)
+            filename= "6.17.4-freedom.tar.gz"
+            # folder="$dirname/$filename"
+            folder= "kernel_dev/6.17.14.tar.gz"
             mkdir -p "$folder"
             echo "📦 Mengekstrak: $archive -> $folder"
             sudo tar -xzf "$archive" -C "$folder"
@@ -96,7 +101,7 @@ jobs:
       - name: Upload release asset
         uses: svenstaro/upload-release-action@v2
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.RELEASES_TOKEN }}
           file: build/*.tar.gz
           tag: kernel_${{ inputs.kernel_mu }}
           file_glob: true
