@@ -5,13 +5,13 @@ on:
   workflow_dispatch:
     inputs:
       kernel_url:
-        #description: 'URL kernel (GitHub / Mediafire / Mega)'
-        descriprion: 'https://github.com'
+        description: 'URL kernel (GitHub / Mediafire / Mega)'
+        #descriprion: 'https://github.com'
         required: true
         type: string
       kernel_mu:
-        #description: "Select the kernel source"
-        description: "github.com/tes-rep/kernel/releases/download/kernel_wifi_on/6.17.4.tar.gz"
+        description: "Select the kernel source"
+        #description: "github.com/tes-rep/kernel/releases/download/kernel_wifi_on/6.17.4.tar.gz"
         required: false
         default: "dev"
         type: choice
