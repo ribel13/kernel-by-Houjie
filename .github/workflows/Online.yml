@@ -10,7 +10,7 @@ on:
       kernel_mu:
         description: "Select the kernel source"
         required: false
-        default: "s905x4"
+        default: "dev"
         type: choice
         options:
           - s905x4
@@ -21,7 +21,7 @@ on:
       rename_rootfs:
         description: "Rename rootfs"
         required: true
-        default: ""
+        default: "frdm"
 
 jobs:
   upload_kernel_release:
@@ -74,9 +74,10 @@ jobs:
       - name: Upload release asset
         uses: svenstaro/upload-release-action@v2
         with:
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          repo_token: ${{ secrets.RELEASES_TOKEN }}
           file: build/*
           tag: kernel_${{ inputs.kernel_mu }}
+          #tag: kernel_${{ inputs.kernel_mu }}
           file_glob: true
           overwrite: true
           body: |
