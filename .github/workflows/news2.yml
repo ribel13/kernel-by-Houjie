@@ -19,7 +19,7 @@ on:
       kernel_version:
         description: "Select kernel version"
         required: false
-        default: "6.6.y_6.12.y"
+        default: "6.14.y"
         type: choice
         options:
           - 5.4.y
@@ -53,10 +53,10 @@ on:
         type: choice
         options: [xz, gzip, zstd, lzma]
       kernel_sign:
-        default: "-Hj"
+        default: "-frdm"
         type: string
       kernel_config:
-        default: "kernel-config/release/s905x4"
+        default: "kernel-config/release/general"
         type: choice
         options:
           - kernel-config/release/s905x4
@@ -64,7 +64,7 @@ on:
           - kernel-config/release/DBAI
           - false
       kernel_mu:
-        default: "s905x4"
+        default: "stable"
         type: choice
         options: [s905x4, stable, dev, beta, dtb]
 
@@ -175,7 +175,7 @@ jobs:
           tag: kernel_${{ inputs.kernel_mu }}
           artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
           allowUpdates: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASES_TOKEN }}
           body: |
             - Kernel built from: `${{ inputs.kernel_source }}`
             - Version: `${{ inputs.kernel_version }}`
