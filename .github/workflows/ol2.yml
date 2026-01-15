@@ -1,0 +1,173 @@
+name: OL 2 Kernel Compile
+
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_url:
+        description: 'URL kernel (GitHub / Mediafire / Mega)'
+        required: true
+        type: string
+      kernel_mu:
+        description: "Select the kernel source"
+        required: false
+        default: "s905x4"
+        type: choice
+        options:
+          - s905x4
+          - stable
+          - dev
+          - beta
+          - dtb
+          - tes
+      rename_rootfs:
+        description: "Nama folder kernel (misal: 5.4.301)"
+        required: true
+        default: "5.4.301"
+      target_repo:
+        description: "Repo tujuan upload"
+        required: false
+        default: "tes-rep"
+        type: choice
+        options:
+          - tes-rep
+          - Dirgha80
+          - Houjie80
+
+jobs:
+  upload_kernel_release:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: 🧰 Initialize environment
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          sudo apt-get -qq update
+          sudo apt-get -qq install build-essential libncurses5-dev libncursesw5-dev zlib1g-dev gawk git gettext libssl-dev xsltproc rsync wget unzip tar gzip qemu-utils mkisofs jq python3 python3-pip
+          pip install telethon colorama
+          sudo pip3 install gdown git+https://github.com/Juvenal-Yescas/mediafire-dl
+          sudo mkdir -p /workdir/build
+          sudo chown -R $USER:$GROUPS /workdir
+
+      - name: 🎯 Set Token and Target Repo
+        id: choose_target
+        run: |
+          case "${{ github.event.inputs.target_repo }}" in
+            tes-rep)
+              echo "PAT=${{ secrets.TARGET_REPO_TES }}" >> $GITHUB_ENV
+              echo "REPO_TARGET=tes-rep/kernel" >> $GITHUB_ENV ;;
+            DIRGHA80)
+              echo "PAT=${{ secrets.TARGET_REPO_DIRGHA80 }}" >> $GITHUB_ENV
+              echo "REPO_TARGET=Dirgha80/kernel" >> $GITHUB_ENV ;;
+            HOUJIE80)
+              echo "PAT=${{ secrets.TARGET_REPO_HOUJIE80 }}" >> $GITHUB_ENV
+              echo "REPO_TARGET=Houjie80/kernel2" >> $GITHUB_ENV ;;
+            *)
+              echo "::error ::Pilihan repo tidak valid!"; exit 1 ;;
+          esac
+
+      - name: 🌐 Download kernel
+        run: |
+          mkdir -p /workdir/build
+          if echo "${{ github.event.inputs.kernel_url }}" | grep -q "drive."; then
+            id=$(echo "${{ github.event.inputs.kernel_url }}" | grep -oE '[-_0-9A-Za-z]{25,}')
+            sudo gdown "$id" -O /workdir/build/file.tar.gz
+          elif echo "${{ github.event.inputs.kernel_url }}" | grep -q "mediafire.com"; then
+            sudo mediafire-dl "${{ github.event.inputs.kernel_url }}" -o /workdir/build/file.tar.gz
+          elif echo "${{ github.event.inputs.kernel_url }}" | grep -q "mega.nz"; then
+            sudo mega-get "${{ github.event.inputs.kernel_url }}" /workdir/build/
+          else
+            sudo wget --no-check-certificate "${{ github.event.inputs.kernel_url }}" -O /workdir/build/file.tar.gz
+          fi
+
+      - name: 🧩 Extract and Repack Kernel
+        run: |
+          set -e
+          GREEN="\033[1;32m"; YELLOW="\033[1;33m"; RED="\033[1;31m"; NC="\033[0m"
+
+          echo -e "${YELLOW}📂 Menyiapkan direktori kerja...${NC}"
+          mkdir -p /workdir/extracted /workdir/final /workdir/build
+
+          echo -e "${YELLOW}📦 Mengekstrak file utama...${NC}"
+          sudo tar -xzf /workdir/build/file.tar.gz -C /workdir/extracted
+          echo -e "${GREEN}✅ File utama berhasil diekstrak${NC}"
+
+          cd /workdir/extracted
+          echo -e "${YELLOW}🔍 Mencari arsip .tar.gz di dalam...${NC}"
+
+          for archive in $(find . -type f -name "*.tar.gz"); do
+            dirname=$(dirname "$archive")
+            filename=$(basename "$archive" .tar.gz)
+            folder="$dirname/$filename"
+            mkdir -p "$folder"
+
+            echo -e "${YELLOW}📦 Mengekstrak: ${archive} -> ${folder}${NC}"
+            sudo tar -xzf "$archive" -C "$folder"
+
+            echo -e "${YELLOW}📦 Mengarsip ulang: ${filename}.tar.gz${NC}"
+            cd "$folder"
+            sudo tar -czf /workdir/final/${filename}.tar.gz .
+            cd - > /dev/null
+          done
+
+          echo -e "${YELLOW}🧩 Membuat bundel akhir (folder tetap ada)...${NC}"
+          cd /workdir/final
+          mkdir -p /workdir/kernel_bundle/${{ inputs.rename_rootfs }}
+          cp -r ./* /workdir/kernel_bundle/${{ inputs.rename_rootfs }}/
+
+          cd /workdir/kernel_bundle
+          sudo tar -czf /workdir/build/${{ inputs.rename_rootfs }}.tar.gz ${{ inputs.rename_rootfs }}
+          echo -e "${GREEN}✅ Final archive berhasil dibuat: /workdir/build/${{ inputs.rename_rootfs }}.tar.gz${NC}"
+
+      - name: 🧾 Copy hasil build ke workspace
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/build
+          cp -r /workdir/build/* $GITHUB_WORKSPACE   
+
+          
+      - name: Upload release asset
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: build/*
+          tag: kernel_${{ inputs.kernel_mu }}
+          file_glob: true
+          overwrite: true
+          body: |
+            - The kernel can be used to compile Armbian and OpenWrt.
+            - The kernel source code comes from: ${{ inputs.kernel_source }}
+            - The kernel compilation toolchain: ${{ inputs.kernel_toolchain }}
+            - The kernel version: ${{ inputs.kernel_version }}
+            - The kernel nama: ${{ inputs.kernel_sign }}
+            - This is a `${{ inputs.kernel_mu }}` kernel, which can be used in Armbian and OpenWrt.
+            - 这是`稳定版`内核，可以在 Armbian 和 OpenWrt 里使用。
+            ## Supported Devices
+            | Amlogic | MODEL | WIFI |
+            | -------- | ------- | ------- |
+            | **S905x**  | **HG680P**<br>**B860H** | **ON**<br>**NOT TEST** |
+            | **S905X4** | **ADVAN AT01**<br>**AKARI** | **OFF**<br>**OFF** |
+            | **S905x2** | **HG680FJ** | **NOT TEST** (`-`) |
+
+      - name: Upload Kernel to Release (repo lain)
+        uses: softprops/action-gh-release@v1
+        if: ${{ env.PACKAGED_STATUS == 'success' || success() }} && !cancelled()
+        env:
+          GITHUB_TOKEN: ${{ env.PAT }}
+        with:
+          tag_name: kernel_${{ inputs.kernel_mu }}
+          repository: ${{ env.REPO_TARGET }}  # GANTI dengan repo tujuan kamu
+          name: Kernel_${{ inputs.kernel_mu }}
+          body: |
+            ### Kernel Build Information
+            - Version: `${{ inputs.kernel_version }}`
+            - Toolchain: `${{ inputs.kernel_toolchain }}`
+            - Signature: `${{ inputs.kernel_sign }}`
+            - Kernel Type: `${{ inputs.kernel_mu }}`
+            ## Supported Devices
+            | Amlogic | MODEL | WIFI |
+            | -------- | ------- | ------- |
+            | **S905x**  | **HG680P**<br>**B860H** | **ON**<br>**NOT TEST** |
+            | **S905X4** | **ADVAN AT01**<br>**AKARI** | **OFF**<br>**OFF** |
+            | **S905x2** | **HG680FJ** | **NOT TEST** (`-`) |
+
+          files: build/*    
