@@ -25,7 +25,7 @@ on:
       rename_rootfs:
         description: "Rename rootfs"
         required: true
-        default: ""
+        default: "FRDMx"
 
 jobs:
   upload_kernel_release:
