@@ -53,7 +53,7 @@ on:
         type: choice
         options: [xz, gzip, zstd, lzma]
       kernel_sign:
-        default: "-frdm"
+        default: "-FRDMx"
         type: string
       kernel_config:
         default: "kernel-config/release/general"
